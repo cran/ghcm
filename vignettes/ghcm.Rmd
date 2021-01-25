@@ -1,0 +1,195 @@
+---
+title: "Getting started with ghcm"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+      number_sections: false
+bibliography: refs.bib
+csl: ieee.csl
+header-includes:
+   - \usepackage{bbm}
+vignette: >
+  %\VignetteIndexEntry{ghcm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+\newcommand{\independent}{\mbox{${}\perp\mkern-11mu\perp{}$}}
+\newcommand{\notindependent}{\mbox{${}\not\!\perp\mkern-11mu\perp{}$}}
+\newcommand{\cond}{\,|\,}
+\newcommand{\ind}{\mathbf{1}}
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align="center",
+  dpi=150,
+  fig.width=7,
+  fig.height=5,
+  out.width="100%"
+)
+options(rmarkdown.html_vignette.check_title = FALSE) 
+```
+
+```{r setup, include=FALSE}
+library(ghcm)
+```
+
+# Introduction
+
+`ghcm` is an R package used to perform conditional independence tests for densely observed functional data.
+
+This vignette gives a brief overview of the usage of the `ghcm` package. We give a brief presentation of the idea behind the GHCM and the conditions under which the test is valid. Subsequently, we provide several examples of the usage of the `ghcm` package by analysing a simulated dataset.
+
+# The Generalised Hilbertian Covariance Measure (GHCM)
+In this section we briefly describe the idea behind the GHCM. For the full technical details and theoretical results, see [@Lundborg2021].
+
+Let $X$, $Y$ and $Z$ be random variables of which we are given $n$ i.i.d. observations $(X_1, Y_1, Z_1), \dots, (X_n, Y_n, Z_n)$ and where $X$, $Y$ and $Z$ can be either scalar or functional. Existing methods, such as the GCM [@GCM] implemented in the `GeneralisedCovarianceMeasure` package [@GCM-package], can deal with most cases where both $X$ and $Y$ are scalar hence our primary interest is in the cases where at least one of $X$ and $Y$ are functional. For the moment, we think of all functional observations as being fully observed.
+
+The GHCM estimates the expected conditional covariance of $X$ and $Y$ given $Z$, $\mathscr{K}$, and rejects the hypothesis $X \independent Y \cond Z$ if the Hilbert-Schmidt norm of $\mathscr{K}$ is large. To describe the algorithm, we utilise outer products $x \otimes y$, that can be thought of as a possibly infinite-dimensional generalisation of the matrix outer product $xy^T$ (for precise definitions, we refer to [@Lundborg2021]).
+
+1. Regress $X$ on $Z$ and $Y$ on $Z$ yielding residuals $\hat{\varepsilon}$ and $\hat{\xi}$, respectively.
+2. Let $\mathscr{R}_i = \hat{\varepsilon}_i \otimes \hat{\xi}_i$ and compute the test statistic
+$$
+T = \left\| \frac{1}{\sqrt{n}} \sum_{i=1}^n \mathscr{R}_i \right\|_{HS}.
+$$
+3. Estimate the covariance of the limiting distribution 
+$$
+\hat{\mathscr{C}} = \frac{1}{n-1} \sum_{i=1}^n (\mathscr{R}_i - \bar{\mathscr{R}}) \otimes_{HS} (\mathscr{R}_i - \bar{\mathscr{R}}),
+$$
+where $\bar{\mathscr{R}} = n^{-1} \sum_{i=1}^n \mathscr{R}_i$.
+4. Sample independent $W_1, \dots, W_B \sim \| \mathcal{N}(0, \hat{\mathscr{C}}) \|_{HS}$ and produce a $p$-value by setting
+$$
+p = \frac{1+\sum_{b=1}^B \ind_{\{ W_b > T \} } }{B+1}.
+$$
+
+Assuming that the regression methods perform sufficiently well, the GHCM has uniformly distributed $p$-values when the null is true. It should be noted that there are situations where $X \notindependent Y \cond Z$ but the GHCM is unable to detect this dependence for any sample size, since $\mathscr{K}$ can be zero in this case.
+
+In practice, we do not observe the functional data fully but rather at a discrete set of values. To deal with this, we utilise functional principal components analysis (FPCA) to express $\hat{\varepsilon}$ and $\hat{\xi}$ (in the case that these are functional) as vectors.
+
+
+# Example applications on a simulated dataset
+To give concrete examples of the usage of the package, we perform conditional independence tests on a simulated dataset consisting of both functional and scalar variables. The functional variables are observed on a common equidistant grid of $101$ points on $[0, 1]$. 
+
+```{r}
+library(ghcm)
+set.seed(111)
+data(ghcm_sim_data)
+grid <- seq(0, 1, length.out=101)
+colnames(ghcm_sim_data)
+```
+`ghcm_sim_data` consists of 500 observations of the scalar variables $Y_1$ and $Y_2$ and the functional variables $X$, $Z$ and $W$. The curves and the mean curve for functional data can be seen in Figures \@ref(fig:plot-X), \@ref(fig:plot-Z) and \@ref(fig:plot-W).
+
+```{r plot-X, fig.cap="Plot of $X$ with the estimated mean curve in red.", echo=FALSE}
+matplot(grid, t(ghcm_sim_data$X), type="l",
+        col=rgb(0,0,0,0.1) , lty=1, xlab="",
+        ylab="")
+lines(grid, colMeans(ghcm_sim_data$X), col=2,
+      lty=2, lwd=2)
+title("X")
+```
+
+```{r plot-Z, fig.cap="Plot of $Z$ with the estimated mean curve in red.", echo=FALSE}
+matplot(grid, t(ghcm_sim_data$Z), type="l",
+        col=rgb(0,0,0,0.1) , lty=1, xlab="",
+        ylab="")
+lines(grid, colMeans(ghcm_sim_data$Z), col=2,
+      lty=2, lwd=2)
+title("Z")
+```
+
+```{r plot-W, fig.cap="Plot of $W$ with the estimated mean curve in red.", echo=FALSE}
+matplot(grid, t(ghcm_sim_data$W), type="l",
+        col=rgb(0,0,0,0.1) , lty=1, xlab="",
+        ylab="")
+lines(grid, colMeans(ghcm_sim_data$W), col=2,
+      lty=2, lwd=2)
+title("W")
+```
+
+In all of the upcoming examples we will use functions from the `refund` R-package [@refund] to perform regressions. We will not attempt to justify the validity of the regression models we use here as the upcoming tests are only included for illustrative purposes. In actual applications of the GHCM however, it is critical that the regression methods employed estimate the conditional expectations $\mathbb{E}(X \cond Z)$ and $\mathbb{E}(Y \cond Z)$ sufficiently well for the $p$-values to be valid. Any use of the GHCM should be prefaced by an analysis of the performance of the regression methods in use.
+
+## Testing independence of scalar variables given functional variables
+We first test whether $Y_1$ and $Y_2$ are conditionally independent given the functional variables. This is relevant if, say, we're trying to predict $Y_1$ and we want to know whether including $Y_2$ as a predictor would be helpful. A naive correlation-based approach would suggest that $Y_2$ could be relevant since:
+```{r}
+cor(ghcm_sim_data$Y_1, ghcm_sim_data$Y_2)
+```
+To perform the conditional independence test, we need a scalar-on-function regression method and we will use the `pfr` function from the `refund` package [@refund] with `lf`-terms. We run the test in the following code:
+```{r scalar-given-functional-test}
+library(refund)
+m_1 <- pfr(Y_1 ~ lf(X) + lf(Z) + lf(W) , data=ghcm_sim_data)
+m_2 <- pfr(Y_2 ~ lf(X) + lf(Z) + lf(W), data=ghcm_sim_data)
+test <- ghcm_test(resid(m_1), resid(m_2), X_grid = NA, Y_grid = NA )
+print(test)
+```
+Since both $Y_1$ and $Y_2$ are scalar, we set `X_grid` and `Y_grid` to be `NA`. This tells the `ghcm_test` function to treat the variables as real-valued observations rather than functional observations. We get a $p$-value of 0.96 and an estimate of the test statistic of 3.03e-06. It should be noted that since the asymptotic distribution of the test statistic depends on the underlying distribution, there is no way to know the $p$-value from just the test statistic alone. However, we can get an idea of how extreme the test statistic is by plotting the asymptotic distribution and the test statistic together. This can be done by simply calling `plot` on the `ghcm` object, in this case `plot(test)`, which results in the plot seen in Figure \@ref(fig:scalar-given-functional-test-plot).
+
+```{r scalar-given-functional-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."}
+plot(test)
+```
+
+## Testing independence of a scalar and functional variable given a functional variable
+We now test whether $Y_1 \independent X \cond Z$. This is relevant if we're interested in modelling $Y_1$ and want to determine whether $X$ should be included in a model that already includes $Z$. We can plot $X$ and $Z$ and color the curves based on the value of $Y_1$ as can be seen in Figures \@ref(fig:Z-Y-plot) and \@ref(fig:X-Y-plot) below. 
+
+```{r Z-Y-plot, echo=FALSE, fig.cap="Plot of $Z$ with colors based on the value of $Y_1$."}
+library(ggplot2)
+library(reshape2)
+
+Z_df <- as.data.frame(ghcm_sim_data$Z)
+colnames(Z_df) <- grid
+Z_df$Y_1<- ghcm_sim_data$Y_1
+Z_df$id <- 1:nrow(ghcm_sim_data)
+tmp <- melt(Z_df, id.var=c("id", "Y_1"), variable.name="grid")
+tmp$grid <- as.numeric(levels(tmp$grid))[tmp$grid]
+
+
+ggplot(tmp, aes(x=grid, y=value, group=id)) + geom_line(aes(color=Y_1)) +
+  theme_bw() + scale_x_continuous(name="") + scale_y_continuous(name="") +
+  scale_color_gradient(name=expression(Y[1]))
+```
+
+```{r X-Y-plot, echo=FALSE, fig.cap="Plot of $X$ with colors based on the value of $Y_1$."}
+library(ggplot2)
+library(reshape2)
+
+X_df <- as.data.frame(ghcm_sim_data$X)
+colnames(X_df) <- grid
+X_df$Y_1<- ghcm_sim_data$Y_1
+X_df$id <- 1:nrow(ghcm_sim_data)
+tmp <- melt(X_df, id.var=c("id", "Y_1"), variable.name="grid")
+tmp$grid <- as.numeric(levels(tmp$grid))[tmp$grid]
+
+
+ggplot(tmp, aes(x=grid, y=value, group=id)) + geom_line(aes(color=Y_1)) +
+  theme_bw() + scale_x_continuous(name="") + scale_y_continuous(name="") +
+  scale_color_gradient(name=expression(Y[1]))
+```
+It appears that both of the functional variables contain information about $Y_1$. To use the GHCM for this test, in addition to the scalar-on-function regression employed in the previous section, we will need to be able to perform function-on-function regressions. This is done using the `pffr` function in the `refund` package [@refund] with `ff` terms. We run the test in the following code:
+```{r Y-X-Z-test}
+m_1 <- pfr(Y_1 ~ lf(Z), data = ghcm_sim_data)
+m_X <- pffr(X ~ ff(Z), data = ghcm_sim_data, chunk.size = 31000)
+test <- ghcm_test(resid(m_X), resid(m_1), X_grid = grid, Y_grid = NA )
+print(test)
+```
+The `Y_1` variable is scalar, hence we set `Y_grid = NA`, however, since `X_1` is functional and observed on the grid `grid`, we set `X_grid = grid`. This tells the `ghcm_test` function to treat the first set of variables as functional observations (and hence perform FPCA on these) and the second set of variables as scalars. We get a $p$-value of 0.88 and an estimate of the test statistic of 9.25e-04. As before, we call `plot(test)` to plot the estimated null distribution of the test statistic which can be seen in Figure \@ref(fig:Y-X-Z-test-plot).
+
+```{r Y-X-Z-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."}
+plot(test)
+```
+
+## Testing independence of functional variables given a functional variable
+Finally, we test whether $X \independent W \cond Z$, which could be relevant in creating prediction models for $X$ or $W$ or in simply ascertaining the relationships between the functional variables. We run the test in the following code:
+```{r X-W-Z-test}
+m_X <- pffr(X ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
+m_W <- pffr(W ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
+test <- ghcm_test(resid(m_X), resid(m_W), X_grid = grid, Y_grid = grid )
+print(test)
+```
+Both variables are functional, hence we set both `X_grid` and `Y_grid` to be `grid`. We get a $p$-value of $0.638$ and an estimate of the test statistic of 6.76e-04. To get an idea of how extreme the observed value of the test statistic is, we plot the asymptotic distribution as before, which can be seen in Figure \@ref(fig:X-W-Z-test-plot). 
+
+```{r X-W-Z-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."}
+plot(test)
+```
+
+
+# Bibliography
