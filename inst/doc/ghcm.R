@@ -51,11 +51,8 @@ cor(ghcm_sim_data$Y_1, ghcm_sim_data$Y_2)
 library(refund)
 m_1 <- pfr(Y_1 ~ lf(X) + lf(Z) + lf(W) , data=ghcm_sim_data)
 m_2 <- pfr(Y_2 ~ lf(X) + lf(Z) + lf(W), data=ghcm_sim_data)
-test <- ghcm_test(resid(m_1), resid(m_2), X_grid = NA, Y_grid = NA )
+test <- ghcm_test(resid(m_1), resid(m_2))
 print(test)
-
-## ----scalar-given-functional-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."----
-plot(test)
 
 ## ----Z-Y-plot, echo=FALSE, fig.cap="Plot of $Z$ with colors based on the value of $Y_1$."----
 library(ggplot2)
@@ -92,18 +89,12 @@ ggplot(tmp, aes(x=grid, y=value, group=id)) + geom_line(aes(color=Y_1)) +
 ## ----Y-X-Z-test---------------------------------------------------------------
 m_1 <- pfr(Y_1 ~ lf(Z), data = ghcm_sim_data)
 m_X <- pffr(X ~ ff(Z), data = ghcm_sim_data, chunk.size = 31000)
-test <- ghcm_test(resid(m_X), resid(m_1), X_grid = grid, Y_grid = NA )
+test <- ghcm_test(resid(m_X), resid(m_1))
 print(test)
-
-## ----Y-X-Z-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."----
-plot(test)
 
 ## ----X-W-Z-test---------------------------------------------------------------
 m_X <- pffr(X ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
 m_W <- pffr(W ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
-test <- ghcm_test(resid(m_X), resid(m_W), X_grid = grid, Y_grid = grid )
+test <- ghcm_test(resid(m_X), resid(m_W))
 print(test)
-
-## ----X-W-Z-test-plot, echo=FALSE, fig.cap="Plot of the estimated asymptotic test distribution under the null with the red line indicating the observed value."----
-plot(test)
 

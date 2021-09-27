@@ -4,40 +4,13 @@
 \alias{ghcm_test}
 \title{Conditional Independence Test using the GHCM}
 \usage{
-ghcm_test(
-  resid_X_on_Z,
-  resid_Y_on_Z,
-  X_grid = NULL,
-  Y_grid = NULL,
-  fpca_method = "fpca.sc",
-  b = 10000,
-  alpha = 0.05,
-  ...
-)
+ghcm_test(resid_X_on_Z, resid_Y_on_Z, alpha = 0.05)
 }
 \arguments{
 \item{resid_X_on_Z, resid_Y_on_Z}{Numeric vectors or matrices. Residuals
 when regressing X (Y) on Z with a suitable regression method.}
 
-\item{X_grid, Y_grid}{Numeric vectors or NA. The grid of values that X (Y)
-is observed on. When set to NULL (the default) an equidistant grid on the
-unit interval is created. If NA, X (Y) is assumed to not be a functional
-random variable.}
-
-\item{fpca_method}{String or function. If a string is given, will search
-the refund package for a function with the given name. If a function is
-given it must take a data matrix and a grid as input and return a matrix
-with the same number of rows as the input and the coordinates of the input
-in its FPCA basis as each row. Extra arguments to the fpca function
-are supplied with \code{...}. Currently supported refund fpca functions
-are \code{fpca.sc} (the default), \code{fpca.ssvd} and \code{fpca.face}.}
-
-\item{b}{Positive integer. The number of Monte Carlo realisations from the
-estimated limiting distribution to estimate the p-value.}
-
 \item{alpha}{Numeric in the unit interval. Significance level of the test.}
-
-\item{...}{Additional arguments to be passed to the fpca_method.}
 }
 \value{
 An object of class \code{ghcm} containing:
@@ -45,12 +18,8 @@ An object of class \code{ghcm} containing:
     \item{\code{test_statistic}}{Numeric, test statistic of the test.}
     \item{\code{p}}{Numeric in the unit interval, estimated p-value of
      the test.}
-    \item{\code{dim}}{Positive integer, the dimension of the truncated
-     limiting Gaussian.}
-    \item{\code{cov}}{\code{dim} x \code{dim} matrix, estimated covariance
+    \item{\code{cov}}{matrix, estimated covariance
      of the truncated limiting Gaussian.}
-    \item{\code{samples}}{Numeric vector, samples of the Hilbert-Schmidt
-     norm of the estimated truncated limiting Gaussian.}
     \item{\code{alpha}}{Numeric in the unit interval, significance level
      of the test.}
   }
@@ -71,18 +40,18 @@ grid <- seq(0, 1, length.out = 101)
 
 m_1 <- pfr(Y_1 ~ lf(Z), data=ghcm_sim_data)
 m_2 <- pfr(Y_2 ~ lf(Z), data=ghcm_sim_data)
-ghcm_test(resid(m_1), resid(m_2), X_grid = NA, Y_grid = NA )
+ghcm_test(resid(m_1), resid(m_2))
 
 # Test independence of a functional variable and a scalar variable given a
 # functional variable
 \donttest{
 m_X <- pffr(X ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
-ghcm_test(resid(m_X), resid(m_1), X_grid = grid, Y_grid = NA )
+ghcm_test(resid(m_X), resid(m_1))
 }
 # Test independence of two functional variables given a functional variable
 \donttest{
 m_W <- pffr(W ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
-ghcm_test(resid(m_X), resid(m_W), X_grid = grid, Y_grid = grid)
+ghcm_test(resid(m_X), resid(m_W))
 }
 }
 \references{
