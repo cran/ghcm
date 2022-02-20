@@ -2,3 +2,5 @@
 
 S3method(print,ghcm)
 export(ghcm_test)
+importFrom(Rcpp,sourceCpp)
+useDynLib(ghcm, .registration = TRUE)

@@ -3,9 +3,9 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.align="center",
-  dpi=150,
-  fig.width=7,
-  fig.height=5,
+  dpi=125,
+  fig.width=6,
+  fig.height=4,
   out.width="100%"
 )
 options(rmarkdown.html_vignette.check_title = FALSE) 
@@ -72,6 +72,8 @@ ggplot(tmp, aes(x=grid, y=value, group=id)) + geom_line(aes(color=Y_1)) +
 
 ## ----X-Y-plot, echo=FALSE, fig.cap="Plot of $X$ with colors based on the value of $Y_1$."----
 library(ggplot2)
+library(dplyr)
+library(tidyr)
 library(reshape2)
 
 X_df <- as.data.frame(ghcm_sim_data$X)
@@ -96,5 +98,46 @@ print(test)
 m_X <- pffr(X ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
 m_W <- pffr(W ~ ff(Z), data=ghcm_sim_data, chunk.size=31000)
 test <- ghcm_test(resid(m_X), resid(m_W))
+print(test)
+
+## -----------------------------------------------------------------------------
+data(ghcm_sim_data_irregular)
+
+## -----------------------------------------------------------------------------
+head(ghcm_sim_data_irregular$X)
+
+## ----plot-X-irregular, fig.cap="Plot of the first 5 observations of $X$ with the subsampled grid points marked by the larger triangles.", echo=FALSE----
+regular_X <- melt(ghcm_sim_data$X, varnames = c(".obs", ".index"), value.name = ".value")
+regular_X$.index <- grid[regular_X$.index]
+plot_df <- left_join(regular_X,ghcm_sim_data_irregular$X %>% mutate(subsampled=TRUE)) %>% replace_na(list(subsampled=FALSE))
+plot_df %>% subset(.obs <= 5) %>% ggplot(aes(x=.index, y=.value, color=as.factor(.obs))) + geom_point(aes(shape=subsampled, size=subsampled)) + geom_line(alpha=0.3) +
+  scale_size_manual(values=c(0.5, 2)) + guides(color="none", size="none", shape="none") +
+  scale_x_continuous(name=NULL) + scale_y_continuous(name=NULL) + theme_bw()
+
+## ----plot-W-irregular, fig.cap="Plot of the first 5 observations of $W$ with the subsampled grid points marked by the larger triangles.", echo=FALSE----
+regular_W <- melt(ghcm_sim_data$W, varnames = c(".obs", ".index"), value.name = ".value")
+regular_W$.index <- grid[regular_W$.index]
+plot_df <- left_join(regular_W,ghcm_sim_data_irregular$W %>% mutate(subsampled=TRUE)) %>% replace_na(list(subsampled=FALSE))
+plot_df %>% subset(.obs <= 5) %>% ggplot(aes(x=.index, y=.value, color=as.factor(.obs))) + geom_point(aes(shape=subsampled, size=subsampled)) + geom_line(alpha=0.3) +
+  scale_size_manual(values=c(0.5, 2)) + guides(color="none", size="none", shape="none") +
+  scale_x_continuous(name=NULL) + scale_y_continuous(name=NULL) + theme_bw()
+
+## ----Y-X-Z-test-irregular-----------------------------------------------------
+n <- nrow(ghcm_sim_data_irregular$Z)
+Z_df <- data.frame(.obs=1:n)
+Z_df$Z <- ghcm_sim_data_irregular$Z
+m_1 <- pfr(Y_1 ~ lf(Z), data = ghcm_sim_data_irregular)
+m_X <- pffr(X ~ ff(Z), ydata = ghcm_sim_data_irregular$X, data=Z_df, chunk.size=31000)
+test <- ghcm_test(resid(m_X), resid(m_1), X_limits=c(0, 1))
+print(test)
+
+## ----X-W-Z-test-irregular-----------------------------------------------------
+n <- nrow(ghcm_sim_data_irregular$Z)
+Z_df <- data.frame(.obs=1:n)
+Z_df$Z <- ghcm_sim_data_irregular$Z
+
+m_X <- pffr(X ~ ff(Z), ydata = ghcm_sim_data_irregular$X, data=Z_df, chunk.size=31000)
+m_W <- pffr(W ~ ff(Z), ydata = ghcm_sim_data_irregular$W, data=Z_df, chunk.size=31000)
+test <- ghcm_test(resid(m_X), resid(m_W), X_limits=c(0, 1), Y_limits=c(0, 1))
 print(test)
 
